@@ -8,14 +8,10 @@ const tendersRouter = require('./routes/tenders');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Middleware
+// Middleware — allow all origins (public read-only API, no credentials)
 app.use(cors({
-  origin: [
-    'http://localhost:5173',
-    'http://localhost:3000',
-    process.env.FRONTEND_URL || '*',
-  ],
-  methods: ['GET'],
+  origin: true,
+  methods: ['GET', 'OPTIONS'],
   credentials: false,
 }));
 app.use(express.json());
