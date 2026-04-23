@@ -1,0 +1,125 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ===== Base Styles ===== */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Cairo', 'Tajawal', Arial, sans-serif;
+  background-color: #f4f4f4;
+  color: #1a1a1a;
+  direction: rtl;
+  text-align: right;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* ===== Ticker Animation ===== */
+@keyframes tickerScroll {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.ticker-container {
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.ticker-content {
+  display: inline-block;
+  animation: tickerScroll 35s linear infinite;
+  padding-left: 100%;
+}
+
+.ticker-content:hover {
+  animation-play-state: paused;
+}
+
+/* ===== Card Hover Effect ===== */
+.news-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.news-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+}
+
+/* ===== Breaking News Pulse ===== */
+@keyframes pulse-red {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.breaking-pulse {
+  animation: pulse-red 1.5s ease-in-out infinite;
+}
+
+/* ===== Scrollbar ===== */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+::-webkit-scrollbar-thumb {
+  background: #0d1b2a;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #c9a227;
+}
+
+/* ===== Category Badge Colors ===== */
+.cat-أسهم { background-color: #1a5276; color: white; }
+.cat-نفط { background-color: #784212; color: white; }
+.cat-بنوك { background-color: #1a6b4a; color: white; }
+.cat-معادن { background-color: #7d6608; color: white; }
+.cat-عقارات { background-color: #6c3483; color: white; }
+.cat-كويت { background-color: #b30000; color: white; }
+.cat-عام { background-color: #2d2d2d; color: white; }
+
+/* ===== Gold Divider ===== */
+.gold-divider {
+  border: none;
+  height: 2px;
+  background: linear-gradient(to left, #c9a227, transparent);
+  margin: 12px 0;
+}
+
+/* ===== Section Header ===== */
+.section-header {
+  border-right: 4px solid #c9a227;
+  padding-right: 12px;
+}
+
+/* ===== Market Ticker Numbers ===== */
+.price-up { color: #16a34a; }
+.price-down { color: #dc2626; }
+
+/* ===== Loading Skeleton ===== */
+@keyframes shimmer {
+  0% { background-position: -468px 0; }
+  100% { background-position: 468px 0; }
+}
+
+.skeleton {
+  background: linear-gradient(to right, #e8e8e8 8%, #d4d4d4 18%, #e8e8e8 33%);
+  background-size: 800px 104px;
+  animation: shimmer 1.5s linear infinite;
+  border-radius: 4px;
+}
