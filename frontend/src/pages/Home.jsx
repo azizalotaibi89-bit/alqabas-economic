@@ -4,6 +4,7 @@ import { Helmet } from 'react-helmet-async';
 import { fetchNews } from '../utils/api.js';
 import NewsCard from '../components/NewsCard.jsx';
 import Sidebar from '../components/Sidebar.jsx';
+import TendersSection from '../components/TendersSection.jsx';
 
 const CATEGORIES = ['الكل', 'أسهم', 'نفط', 'بنوك', 'عقارات', 'معادن', 'كويت', 'عام'];
 
@@ -199,6 +200,9 @@ export default function Home() {
                 </div>
               </div>
             )}
+
+            {/* Tenders Section — shown below main grid when no search active */}
+            {!searchParam && <TendersSection />}
           </>
         )}
       </div>

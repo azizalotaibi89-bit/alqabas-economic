@@ -4,7 +4,7 @@ const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 const api = axios.create({
   baseURL: `${BASE_URL}/api`,
-  timeout: 10000,
+  timeout: 15000,
 });
 
 export const fetchNews = async ({ category, limit = 20, page = 1 } = {}) => {
@@ -26,6 +26,16 @@ export const fetchNewsById = async (id) => {
 
 export const fetchCategories = async () => {
   const { data } = await api.get('/news/categories');
+  return data;
+};
+
+export const fetchStocks = async () => {
+  const { data } = await api.get('/stocks');
+  return data;
+};
+
+export const fetchTenders = async ({ limit = 20 } = {}) => {
+  const { data } = await api.get('/tenders', { params: { limit } });
   return data;
 };
 

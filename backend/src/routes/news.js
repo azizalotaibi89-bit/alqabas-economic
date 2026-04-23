@@ -1,26 +1,26 @@
 const express = require('express');
 const router = express.Router();
-const { getTweets } = require('../services/twitterScraper');
+const { getNews } = require('../services/newsScraper');
 
 // GET /api/news - fetch all tweets/news
 router.get('/', async (req, res) => {
   try {
     const { category, limit = 100, page = 1 } = req.query;
-    let tweets = await getTweets();
+    let articles = await getNews();
 
     // Filter by category
     if (category && category !== 'all') {
-      tweets = tweets.filter((t) => t.category === category);
+      articles = articles.filter((t) => t.category === category);
     }
 
     // Paginate
     const startIndex = (parseInt(page) - 1) * parseInt(limit);
     const endIndex = startIndex + parseInt(limit);
-    const paginated = tweets.slice(startIndex, endIndex);
+    const paginated = articles.slice(startIndex, endIndex);
 
     res.json({
       success: true,
-      total: tweets.length,
+      total: articles.length,
       page: parseInt(page),
       limit: parseInt(limit),
       data: paginated,
@@ -34,8 +34,8 @@ router.get('/', async (req, res) => {
 // GET /api/news/latest - get the 5 most recent
 router.get('/latest', async (req, res) => {
   try {
-    const tweets = await getTweets();
-    res.json({ success: true, data: tweets.slice(0, 5) });
+    const articles = await getNews();
+    res.json({ success: true, data: articles.slice(0, 5) });
   } catch (err) {
     res.status(500).json({ success: false, error: 'Failed to fetch latest news' });
   }
@@ -44,8 +44,8 @@ router.get('/latest', async (req, res) => {
 // GET /api/news/categories - get available categories
 router.get('/categories', async (req, res) => {
   try {
-    const tweets = await getTweets();
-    const categories = [...new Set(tweets.map((t) => t.category))];
+    const articles = await getNews();
+    const categories = [...new Set(articles.map((t) => t.category))];
     res.json({ success: true, data: categories });
   } catch (err) {
     res.status(500).json({ success: false, error: 'Failed to fetch categories' });
@@ -55,8 +55,8 @@ router.get('/categories', async (req, res) => {
 // GET /api/news/:id - get single news item
 router.get('/:id', async (req, res) => {
   try {
-    const tweets = await getTweets();
-    const tweet = tweets.find((t) => t.id === req.params.id);
+    const articles = await getNews();
+    const tweet = articles.find((t) => t.id === req.params.id);
     if (!tweet) {
       return res.status(404).json({ success: false, error: 'Article not found' });
     }

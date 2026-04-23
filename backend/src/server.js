@@ -2,6 +2,8 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const newsRouter = require('./routes/news');
+const stocksRouter = require('./routes/stocks');
+const tendersRouter = require('./routes/tenders');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -25,6 +27,8 @@ app.get('/health', (req, res) => {
 
 // Routes
 app.use('/api/news', newsRouter);
+app.use('/api/stocks', stocksRouter);
+app.use('/api/tenders', tendersRouter);
 
 // 404 handler
 app.use((req, res) => {
@@ -41,4 +45,6 @@ app.listen(PORT, () => {
   console.log(`🚀 القبس الاقتصادي API running on port ${PORT}`);
   console.log(`📰 Health check: http://localhost:${PORT}/health`);
   console.log(`📡 News API: http://localhost:${PORT}/api/news`);
+  console.log(`📊 Stocks API: http://localhost:${PORT}/api/stocks`);
+  console.log(`📋 Tenders API: http://localhost:${PORT}/api/tenders`);
 });
