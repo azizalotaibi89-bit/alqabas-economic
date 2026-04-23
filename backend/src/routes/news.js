@@ -5,7 +5,7 @@ const { getTweets } = require('../services/twitterScraper');
 // GET /api/news - fetch all tweets/news
 router.get('/', async (req, res) => {
   try {
-    const { category, limit = 20, page = 1 } = req.query;
+    const { category, limit = 100, page = 1 } = req.query;
     let tweets = await getTweets();
 
     // Filter by category

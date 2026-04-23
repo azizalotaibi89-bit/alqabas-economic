@@ -36,7 +36,7 @@ export default function Home() {
     setError(null);
     try {
       const cat = category === 'الكل' ? undefined : category;
-      const res = await fetchNews({ category: cat, limit: 20 });
+      const res = await fetchNews({ category: cat, limit: 100 });
       if (res.success) {
         let data = res.data;
         // Client-side search filter
