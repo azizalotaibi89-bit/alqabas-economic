@@ -1,63 +1,58 @@
 export default function Logo({ size = 'md' }) {
-  const scales = { sm: 0.7, md: 1, lg: 1.35 };
-  const s = scales[size] || 1;
+  const cfg = {
+    sm: { arabicSize: '1.7rem', engSize: '0.6rem', starSize: 18, gap: 10 },
+    md: { arabicSize: '2.4rem', engSize: '0.72rem', starSize: 22, gap: 12 },
+    lg: { arabicSize: '3rem',   engSize: '0.85rem', starSize: 28, gap: 14 },
+  };
+  const { arabicSize, engSize, starSize, gap } = cfg[size] || cfg.md;
 
   return (
     <div style={{
-      display: 'flex',
+      display: 'inline-flex',
       alignItems: 'center',
-      gap: '12px',
+      gap,
       userSelect: 'none',
-      transform: `scale(${s})`,
-      transformOrigin: 'right center',
+      direction: 'ltr',
     }}>
-      {/* Inline SVG — no external file dependency */}
-      <svg
-        viewBox="0 0 260 64"
-        width="260"
-        height="64"
-        xmlns="http://www.w3.org/2000/svg"
-        style={{ display: 'block', flexShrink: 0 }}
-      >
-        {/* Gold spark / star */}
-        <g transform="translate(18,32)">
-          <polygon
-            points="0,-11 2,-2 11,0 2,2 0,11 -2,2 -11,0 -2,-2"
-            fill="#C9A84C"
-          />
-        </g>
-        {/* القبس — large bold Arabic */}
-        <text
-          x="248"
-          y="47"
-          fontFamily="'Noto Naskh Arabic','Cairo','Traditional Arabic',serif"
-          fontSize="52"
-          fontWeight="900"
-          fill="#ffffff"
-          textAnchor="end"
-          direction="rtl"
-        >
-          القبس
-        </text>
+      {/* Gold star spark */}
+      <svg width={starSize} height={starSize} viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
+        <polygon
+          points="12,1 14,9 22,12 14,15 12,23 10,15 2,12 10,9"
+          fill="#C9A84C"
+        />
       </svg>
 
-      {/* Thin gold divider */}
+      {/* Arabic logotype — plain HTML text, no SVG */}
+      <span style={{
+        fontFamily: "'Noto Naskh Arabic', 'Cairo', 'Amiri', 'Traditional Arabic', 'Arial Unicode MS', serif",
+        fontSize: arabicSize,
+        fontWeight: 900,
+        color: '#ffffff',
+        lineHeight: 1,
+        direction: 'rtl',
+        letterSpacing: '-0.5px',
+      }}>
+        القبس
+      </span>
+
+      {/* Gold divider */}
       <div style={{
-        width: '1px',
-        height: '40px',
-        background: 'rgba(201,168,76,0.45)',
+        width: 1,
+        height: '1.8rem',
+        background: 'rgba(201,168,76,0.5)',
         flexShrink: 0,
       }} />
 
       {/* "economics" wordmark */}
       <span style={{
-        fontFamily: "'Inter','Helvetica Neue',Arial,sans-serif",
-        fontSize: '11px',
+        fontFamily: "'Inter', 'Helvetica Neue', Arial, sans-serif",
+        fontSize: engSize,
         fontWeight: 300,
-        letterSpacing: '0.22em',
+        letterSpacing: '0.25em',
         color: '#C9A84C',
         textTransform: 'uppercase',
         whiteSpace: 'nowrap',
+        lineHeight: 1,
       }}>
         economics
       </span>
