@@ -48,7 +48,10 @@ export default function NewsCard({ article, variant = 'default' }) {
             />
           ) : (
             <div className={`absolute inset-0 bg-gradient-to-b ${gradient} opacity-80`}>
-              <div className="flex items-center justify-center h-full text-6xl opacity-30">{icon}</div>
+              <div className="flex flex-col items-center justify-center h-full gap-3">
+                <img src="/alqabas-logo.svg" alt="" className="w-20 h-20 rounded-xl opacity-60" />
+                <span className="text-white/50 text-sm font-semibold">القبس الاقتصادي</span>
+              </div>
             </div>
           )}
           {/* Overlay gradient */}
@@ -102,10 +105,17 @@ export default function NewsCard({ article, variant = 'default' }) {
               src={article.image}
               alt={article.title}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
             />
-          ) : (
-            <span className="text-5xl opacity-40">{icon}</span>
-          )}
+          ) : null}
+          {/* Placeholder shown when no image or image fails to load */}
+          <div
+            className="absolute inset-0 flex flex-col items-center justify-center gap-2"
+            style={{ display: article.image ? 'none' : 'flex' }}
+          >
+            <img src="/alqabas-logo.svg" alt="" className="w-16 h-16 rounded-lg opacity-70" />
+            <span className="text-white/60 text-xs font-semibold tracking-wide">القبس الاقتصادي</span>
+          </div>
           {/* Gold bar top */}
           <div className="absolute top-0 right-0 left-0 h-1 bg-qabas-gold" />
           {/* Category badge overlay */}

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <!-- Blue background -->
+  <rect width="200" height="200" fill="#1268B3" rx="12"/>
+  <!-- White "القبس" text centered -->
+  <text
+    x="100"
+    y="118"
+    font-family="'Cairo','Tajawal','Segoe UI',Arial,sans-serif"
+    font-size="72"
+    font-weight="900"
+    fill="#ffffff"
+    text-anchor="middle"
+    dominant-baseline="middle"
+    direction="rtl"
+  >القبس</text>
+  <!-- Small decorative star/sun below text -->
+  <circle cx="100" cy="148" r="4" fill="#ffffff" opacity="0.6"/>
+  <circle cx="84" cy="148" r="3" fill="#ffffff" opacity="0.35"/>
+  <circle cx="116" cy="148" r="3" fill="#ffffff" opacity="0.35"/>
+</svg>

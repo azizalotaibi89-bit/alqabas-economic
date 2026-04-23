@@ -39,21 +39,7 @@ export default function Header() {
       <div className="bg-qabas-navy-light border-b border-qabas-gold/20">
         <div className="max-w-7xl mx-auto px-4 py-1.5 flex items-center justify-between text-xs text-gray-400">
           <span>{arabicDate}</span>
-          <div className="flex items-center gap-4">
-            <a
-              href="https://twitter.com/thekstocks"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-qabas-gold transition-colors flex items-center gap-1"
-            >
-              <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.737l7.73-8.835L1.254 2.25H8.08l4.259 5.63L18.244 2.25zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-              </svg>
-              @thekstocks
-            </a>
-            <span className="text-qabas-gold/40">|</span>
-            <span className="text-qabas-gold/70">الكويت • Kuwait</span>
-          </div>
+          <span className="text-qabas-gold/70">الكويت • Kuwait</span>
         </div>
       </div>
 
