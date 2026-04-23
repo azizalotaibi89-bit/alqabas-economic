@@ -1,29 +1,35 @@
-// Typographic logo — no image dependency
 export default function Logo({ size = 'md' }) {
-  const scale = size === 'sm' ? 0.75 : size === 'lg' ? 1.3 : 1;
+  const heights = { sm: 38, md: 52, lg: 68 };
+  const h = heights[size] || 52;
 
   return (
-    <div style={{ transform: `scale(${scale})`, transformOrigin: 'right center', lineHeight: 1 }}>
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', userSelect: 'none' }}>
+      {/* Al-Qabas logotype image */}
+      <img
+        src="/alqabas-logo.svg"
+        alt="القبس"
+        style={{ height: h, width: 'auto', display: 'block', filter: 'brightness(0) invert(1)' }}
+      />
+
+      {/* Divider */}
+      <div style={{
+        width: '1px',
+        height: h * 0.55,
+        background: 'rgba(201,168,76,0.5)',
+        flexShrink: 0,
+      }} />
+
+      {/* "economics" wordmark */}
+      <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', lineHeight: 1 }}>
         <span style={{
-          fontFamily: "'Noto Naskh Arabic', 'Traditional Arabic', 'Cairo', serif",
-          fontSize: '1.6rem',
-          fontWeight: 900,
+          fontFamily: "'Inter', 'Helvetica Neue', Arial, sans-serif",
+          fontSize: h * 0.28,
+          fontWeight: 300,
+          letterSpacing: '0.18em',
           color: '#C9A84C',
-          letterSpacing: '-0.5px',
-          lineHeight: 1.1,
+          textTransform: 'uppercase',
         }}>
-          القبس
-        </span>
-        <span style={{
-          fontFamily: "'Noto Naskh Arabic', 'Traditional Arabic', 'Cairo', serif",
-          fontSize: '0.72rem',
-          fontWeight: 700,
-          color: '#e5e5e5',
-          letterSpacing: '0.08em',
-          lineHeight: 1.2,
-        }}>
-          الاقتصادي
+          economics
         </span>
       </div>
     </div>
