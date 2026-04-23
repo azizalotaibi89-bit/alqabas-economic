@@ -4,7 +4,7 @@ const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 const api = axios.create({
   baseURL: `${BASE_URL}/api`,
-  timeout: 15000,
+  timeout: 25000, // backend fetches from multiple sources; give it time
 });
 
 export const fetchNews = async ({ category, limit = 20, page = 1 } = {}) => {
