@@ -1,54 +1,81 @@
 export default function Logo({ size = 'md' }) {
   const cfg = {
-    sm: { arabicSize: '1.7rem', engSize: '0.6rem', starSize: 18, gap: 10 },
-    md: { arabicSize: '2.4rem', engSize: '0.72rem', starSize: 22, gap: 12 },
-    lg: { arabicSize: '3rem',   engSize: '0.85rem', starSize: 28, gap: 14 },
+    sm: { fontSize: 36, engSize: '0.58rem', divH: 28 },
+    md: { fontSize: 52, engSize: '0.72rem', divH: 38 },
+    lg: { fontSize: 68, engSize: '0.9rem',  divH: 50 },
   };
-  const { arabicSize, engSize, starSize, gap } = cfg[size] || cfg.md;
+  const { fontSize, engSize, divH } = cfg[size] || cfg.md;
+  const starR = fontSize * 0.18; // star radius scales with text
 
   return (
     <div style={{
       display: 'inline-flex',
       alignItems: 'center',
-      gap,
+      gap: 14,
       userSelect: 'none',
       direction: 'ltr',
+      position: 'relative',
     }}>
-      {/* Gold star spark */}
-      <svg width={starSize} height={starSize} viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
-        <polygon
-          points="12,1 14,9 22,12 14,15 12,23 10,15 2,12 10,9"
-          fill="#C9A84C"
-        />
-      </svg>
 
-      {/* Arabic logotype — plain HTML text, no SVG */}
-      <span style={{
-        fontFamily: "'Noto Naskh Arabic', 'Cairo', 'Amiri', 'Traditional Arabic', 'Arial Unicode MS', serif",
-        fontSize: arabicSize,
-        fontWeight: 900,
-        color: '#ffffff',
-        lineHeight: 1,
-        direction: 'rtl',
-        letterSpacing: '-0.5px',
-      }}>
-        القبس
-      </span>
+      {/* ── Logotype block ── */}
+      <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+
+        {/* Arabic text "القبس" */}
+        <span style={{
+          fontFamily: "'Cairo', 'Tajawal', 'Noto Naskh Arabic', serif",
+          fontSize,
+          fontWeight: 900,
+          color: '#ffffff',
+          lineHeight: 1,
+          direction: 'rtl',
+          display: 'block',
+          letterSpacing: '-1px',
+        }}>
+          القبس
+        </span>
+
+        {/* Gold starburst — positioned over the letters (like the spark in the real logo) */}
+        <svg
+          width={starR * 2.8}
+          height={starR * 2.8}
+          viewBox={`0 0 ${starR * 2.8} ${starR * 2.8}`}
+          style={{
+            position: 'absolute',
+            // Roughly center it horizontally and vertically on the letter body
+            left: '36%',
+            top: '50%',
+            transform: 'translate(-50%, -50%)',
+            pointerEvents: 'none',
+          }}
+        >
+          {/* Outer 8-pointed star */}
+          <polygon
+            points={buildStar(starR * 1.4, starR * 1.4, starR, starR * 0.42, 8)}
+            fill="#C9A84C"
+          />
+          {/* Inner bright core */}
+          <polygon
+            points={buildStar(starR * 1.4, starR * 1.4, starR * 0.5, starR * 0.22, 8)}
+            fill="#ffffff"
+            opacity="0.9"
+          />
+        </svg>
+      </div>
 
       {/* Gold divider */}
       <div style={{
         width: 1,
-        height: '1.8rem',
+        height: divH,
         background: 'rgba(201,168,76,0.5)',
         flexShrink: 0,
       }} />
 
       {/* "economics" wordmark */}
       <span style={{
-        fontFamily: "'Inter', 'Helvetica Neue', Arial, sans-serif",
+        fontFamily: "'Inter','Helvetica Neue', Arial, sans-serif",
         fontSize: engSize,
         fontWeight: 300,
-        letterSpacing: '0.25em',
+        letterSpacing: '0.26em',
         color: '#C9A84C',
         textTransform: 'uppercase',
         whiteSpace: 'nowrap',
@@ -58,4 +85,15 @@ export default function Logo({ size = 'md' }) {
       </span>
     </div>
   );
+}
+
+/** Build SVG polygon points string for an n-pointed star */
+function buildStar(cx, cy, outerR, innerR, points) {
+  const pts = [];
+  for (let i = 0; i < points * 2; i++) {
+    const angle = (Math.PI / points) * i - Math.PI / 2;
+    const r = i % 2 === 0 ? outerR : innerR;
+    pts.push(`${cx + r * Math.cos(angle)},${cy + r * Math.sin(angle)}`);
+  }
+  return pts.join(' ');
 }
