@@ -1,0 +1,40 @@
+name: Refresh News Data
+
+on:
+  schedule:
+    - cron: '0 */2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main (for scripts)
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install script dependencies
+        run: npm install
+        working-directory: .github/scripts
+
+      - name: Fetch news
+        run: node .github/scripts/fetch-news.js /tmp/news.json
+
+      - name: Push news.json to gh-pages
+        run: |
+          git fetch origin gh-pages
+          git checkout gh-pages
+          cp /tmp/news.json news.json
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git add news.json
+          git diff --staged --quiet && echo "No changes" || (git commit -m "chore: refresh news data [skip ci]" && git push origin gh-pages)
