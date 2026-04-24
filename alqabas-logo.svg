@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 80" width="340" height="80">
+  <!-- Star/spark icon -->
+  <g transform="translate(22,40)">
+    <polygon points="0,-13 2.5,-2.5 13,0 2.5,2.5 0,13 -2.5,2.5 -13,0 -2.5,-2.5" fill="#C9A84C"/>
+    <polygon points="0,-8 1.5,-1.5 8,0 1.5,1.5 0,8 -1.5,1.5 -8,0 -1.5,-1.5" fill="#ffffff" opacity="0.6"/>
+  </g>
+  <!-- "القبس" large Arabic text -->
+  <text
+    x="320"
+    y="56"
+    font-family="'Noto Naskh Arabic','Cairo','Traditional Arabic','Times New Roman',serif"
+    font-size="58"
+    font-weight="900"
+    fill="#ffffff"
+    text-anchor="end"
+    direction="rtl"
+    letter-spacing="-1"
+  >القبس</text>
+</svg>
