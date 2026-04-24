@@ -6,8 +6,6 @@ const path = require('path');
 const OUTPUT_PATH = process.argv[2] || path.join(__dirname, '../../frontend/public/news.json');
 
 // ─── Primary sources: Google News RSS ────────────────────────────────────────
-// These are always accessible from GitHub Actions and return valid XML.
-// They aggregate articles from Kuwaiti & regional news sites.
 const GOOGLE_NEWS_SOURCES = [
   { name: 'Google | الاقتصاد الكويتي', url: 'https://news.google.com/rss/search?q=الاقتصاد+الكويتي&hl=ar&gl=KW&ceid=KW:ar' },
   { name: 'Google | أسهم الكويت',      url: 'https://news.google.com/rss/search?q=أسهم+بورصة+الكويت&hl=ar&gl=KW&ceid=KW:ar' },
@@ -23,10 +21,13 @@ const GOOGLE_NEWS_SOURCES = [
   { name: 'Google | Kuwait Tenders',   url: 'https://news.google.com/rss/search?q=Kuwait+tenders+CAPT+government+procurement+2026&hl=en&gl=KW&ceid=KW:en' },
   { name: 'Google | CAPT Kuwait',      url: 'https://news.google.com/rss/search?q=CAPT+Kuwait+tender+2026&hl=en&gl=KW&ceid=KW:en' },
   { name: 'Google | جهاز المناقصات',  url: 'https://news.google.com/rss/search?q=جهاز+المناقصات+المركزي+الكويت&hl=ar&gl=KW&ceid=KW:ar' },
+  // Kuwait Al-Youm government gazette — tenders, practices, official announcements
+  { name: 'Google | كويت اليوم مناقصات', url: 'https://news.google.com/rss/search?q=site:kuwaityoum.gov.kw&hl=ar&gl=KW&ceid=KW:ar' },
+  { name: 'Google | كويت اليوم',         url: 'https://news.google.com/rss/search?q=%22كويت+اليوم%22+مناقصات+ممارسات&hl=ar&gl=KW&ceid=KW:ar' },
+  { name: 'Google | ممارسات الكويت',     url: 'https://news.google.com/rss/search?q=ممارسات+مناقصات+الكويت+2026&hl=ar&gl=KW&ceid=KW:ar' },
 ];
 
 // ─── Secondary sources: direct Kuwaiti RSS ───────────────────────────────────
-// These may or may not work from GitHub Actions IPs, but we try anyway.
 const DIRECT_SOURCES = [
   { name: 'الأنباء',         url: 'https://www.alanba.com.kw/rss/' },
   { name: 'الأنباء - اقتصاد', url: 'https://www.alanba.com.kw/rss/economy/' },
@@ -36,6 +37,7 @@ const DIRECT_SOURCES = [
   { name: 'الجريدة',         url: 'https://www.aljarida.com/rss/' },
   { name: 'Kuwait Times',    url: 'https://www.kuwaittimes.com/feed/' },
   { name: 'Arab Times',      url: 'https://www.arabtimesonline.com/rss/' },
+  { name: 'كويت اليوم',     url: 'https://www.kuwaityoum.gov.kw/rss/' },
 ];
 
 const HEADERS = {
@@ -60,12 +62,12 @@ function detectCategory(text) {
   if (t.match(/بنك|مصرف|bank|فائدة|قرض|ائتمان|تمويل|مصارف|central bank/)) return 'بنوك';
   if (t.match(/عقار|real estate|property|مشروع|مجمع|أراضي|شقق|عقارات/)) return 'عقارات';
   if (t.match(/ذهب|gold|معدن|فضة|silver|نحاس|copper|platinum/)) return 'معادن';
-  if (t.match(/مناقصة|مناقصات|عطاء|عطاءات|مزايدة|ممارسة|تلزيم|tender|procurement|مشتريات حكومية|capt|جهاز المناقصات/)) return 'مناقصات';
+  if (t.match(/مناقصة|مناقصات|عطاء|عطاءات|مزايدة|ممارسة|تلزيم|tender|procurement|مشتريات حكومية|capt|جهاز المناقصات|كويت اليوم/)) return 'مناقصات';
   if (t.match(/كويت|kuwait|حكومة|وزير|أمير|مجلس الأمة|ديوان|amiri/)) return 'كويت';
   return 'عام';
 }
 
-// Parse RSS XML — try strict first, then lenient (strict: false handles malformed feeds)
+// Parse RSS XML — try strict first, then lenient
 async function parseRSSXml(xmlData, sourceName) {
   for (const strict of [true, false]) {
     try {
@@ -89,17 +91,15 @@ async function parseRSSXml(xmlData, sourceName) {
           item.description?._ ?? item.description ??
           item.summary?._ ?? item.summary ?? '';
 
-        // Google News RSS wraps link in CDATA inside the item — handle both formats
         const link =
           item.link?.href ??
-          item.link?.$?.href ??
+          item.link?.\$?.href ??
           (typeof item.link === 'string' ? item.link : '') ??
           item.guid?._ ??
           (typeof item.guid === 'string' ? item.guid : '') ?? '';
 
         const pubDate = item.pubDate ?? item.updated ?? item.published ?? new Date().toISOString();
 
-        // Source attribution (Google News RSS provides a <source> element)
         const itemSource =
           item.source?._ ??
           (typeof item.source === 'string' ? item.source : null) ??
@@ -109,7 +109,6 @@ async function parseRSSXml(xmlData, sourceName) {
         const description = clean(rawDesc).substring(0, 600);
         if (!title) return null;
 
-        // Extract image
         let image = null;
         const descStr = String(rawDesc);
         const imgMatch = descStr.match(/<img[^>]+src=["']([^"']+)["']/i);
@@ -117,11 +116,11 @@ async function parseRSSXml(xmlData, sourceName) {
           image = imgMatch[1];
         }
         if (!image && item.enclosure) {
-          const eu = item.enclosure?.$?.url ?? item.enclosure?.url;
+          const eu = item.enclosure?.\$?.url ?? item.enclosure?.url;
           if (eu && /\.(jpg|jpeg|png|webp)/i.test(eu)) image = eu;
         }
         if (!image && item['media:content']) {
-          const mu = item['media:content']?.$?.url ?? item['media:content']?.url;
+          const mu = item['media:content']?.\$?.url ?? item['media:content']?.url;
           if (mu) image = mu;
         }
 
