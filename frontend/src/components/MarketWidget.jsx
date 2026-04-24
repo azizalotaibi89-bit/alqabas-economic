@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 
-// TradingView Market Quotes widget — live prices for KSE, Brent, Gold, USD/KWD
+// TradingView Ticker Tape widget — live prices for Brent, Gold, Silver, NatGas, USD/KWD
 export default function MarketWidget() {
   const containerRef = useRef(null);
 
@@ -10,33 +10,20 @@ export default function MarketWidget() {
 
     const script = document.createElement('script');
     script.type = 'text/javascript';
-    script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-market-quotes.js';
+    script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js';
     script.async = true;
     script.text = JSON.stringify({
-      width: '100%',
-      symbolsGroups: [
-        {
-          name: 'بورصة الكويت',
-          symbols: [
-            { name: 'KSE:KWSEALL', displayName: 'المؤشر العام' },
-          ],
-        },
-        {
-          name: 'السلع',
-          symbols: [
-            { name: 'NYMEX:BZ1!', displayName: 'برنت' },
-            { name: 'COMEX:GC1!', displayName: 'ذهب' },
-          ],
-        },
-        {
-          name: 'العملات',
-          symbols: [
-            { name: 'FX:USDKWD', displayName: 'دولار/دينار' },
-          ],
-        },
+      symbols: [
+        { proName: 'TVC:UKOIL',        title: 'برنت' },
+        { proName: 'TVC:GOLD',         title: 'ذهب' },
+        { proName: 'TVC:SILVER',       title: 'فضة' },
+        { proName: 'TVC:NATGAS',       title: 'غاز' },
+        { proName: 'FX_IDC:USDKWD',   title: 'دولار/دينار' },
+        { proName: 'TADAWUL:TASI',     title: 'تداول' },
       ],
-      showSymbolLogo: false,
+      showSymbolLogo: true,
       isTransparent: false,
+      displayMode: 'adaptive',
       colorTheme: 'dark',
       locale: 'ar_AE',
     });
