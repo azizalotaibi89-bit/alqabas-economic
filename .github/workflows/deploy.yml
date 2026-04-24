@@ -4,6 +4,9 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: write
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -14,15 +17,20 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install dependencies
+      - name: Install frontend dependencies
         run: npm ci
         working-directory: ./frontend
 
-      - name: Build
+      - name: Build frontend
         run: npm run build
         working-directory: ./frontend
-        env:
-          VITE_API_URL: https://alqabas-economic-api.onrender.com
+
+      - name: Install news fetcher dependencies
+        run: npm install
+        working-directory: .github/scripts
+
+      - name: Fetch initial news data
+        run: node .github/scripts/fetch-news.js ./frontend/dist/news.json
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
