@@ -19,6 +19,8 @@ const GOOGLE_NEWS_SOURCES = [
   { name: 'Google | Kuwait Stocks',     url: 'https://news.google.com/rss/search?q=Kuwait+Boursa+stock+exchange&hl=en&gl=KW&ceid=KW:en' },
   { name: 'Google | القبس',            url: 'https://news.google.com/rss/search?q=site:alqabas.com&hl=ar&gl=KW&ceid=KW:ar' },
   { name: 'Google | الأنباء',          url: 'https://news.google.com/rss/search?q=site:alanba.com.kw&hl=ar&gl=KW&ceid=KW:ar' },
+  { name: 'Google | مناقصات الكويت',   url: 'https://news.google.com/rss/search?q=مناقصات+عطاءات+الكويت+حكومية&hl=ar&gl=KW&ceid=KW:ar' },
+  { name: 'Google | Kuwait Tenders',   url: 'https://news.google.com/rss/search?q=Kuwait+tenders+CAPT+government+procurement&hl=en&gl=KW&ceid=KW:en' },
 ];
 
 // ─── Secondary sources: direct Kuwaiti RSS ───────────────────────────────────
@@ -56,6 +58,7 @@ function detectCategory(text) {
   if (t.match(/بنك|مصرف|bank|فائدة|قرض|ائتمان|تمويل|مصارف|central bank/)) return 'بنوك';
   if (t.match(/عقار|real estate|property|مشروع|مجمع|أراضي|شقق|عقارات/)) return 'عقارات';
   if (t.match(/ذهب|gold|معدن|فضة|silver|نحاس|copper|platinum/)) return 'معادن';
+  if (t.match(/مناقصة|مناقصات|عطاء|عطاءات|مزايدة|ممارسة|تلزيم|tender|procurement|مشتريات حكومية|capt|جهاز المناقصات/)) return 'مناقصات';
   if (t.match(/كويت|kuwait|حكومة|وزير|أمير|مجلس الأمة|ديوان|amiri/)) return 'كويت';
   return 'عام';
 }
