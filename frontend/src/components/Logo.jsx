@@ -1,20 +1,20 @@
 export default function Logo({ size = 'md' }) {
   const cfg = {
-    sm: { fontSize: 36, engSize: '0.58rem', divH: 28 },
-    md: { fontSize: 52, engSize: '0.72rem', divH: 38 },
-    lg: { fontSize: 68, engSize: '0.9rem',  divH: 50 },
+    sm: { logoH: 32, engSize: '0.58rem', divH: 24 },
+    md: { logoH: 46, engSize: '0.72rem', divH: 34 },
+    lg: { logoH: 60, engSize: '0.9rem',  divH: 44 },
   };
-  const { fontSize, engSize, divH } = cfg[size] || cfg.md;
+  const { logoH, engSize, divH } = cfg[size] || cfg.md;
 
   return (
     <div style={{
       display: 'inline-flex',
       alignItems: 'center',
-      gap: 14,
+      gap: 12,
       userSelect: 'none',
       direction: 'ltr',
     }}>
-      {/* "economics" wordmark — LEFT side */}
+      {/* "economics" wordmark */}
       <span style={{
         fontFamily: "'Inter','Helvetica Neue', Arial, sans-serif",
         fontSize: engSize,
@@ -36,19 +36,12 @@ export default function Logo({ size = 'md' }) {
         flexShrink: 0,
       }} />
 
-      {/* Arabic text */}
-      <span style={{
-        fontFamily: "'Cairo', 'Tajawal', 'Noto Naskh Arabic', serif",
-        fontSize,
-        fontWeight: 900,
-        color: '#ffffff',
-        lineHeight: 1,
-        direction: 'rtl',
-        display: 'block',
-        letterSpacing: '-1px',
-      }}>
-        القبس
-      </span>
+      {/* Al-Qabas logo image */}
+      <img
+        src="/alqabas-logo.svg"
+        alt="القبس"
+        style={{ height: logoH, width: 'auto', display: 'block' }}
+      />
     </div>
   );
 }
