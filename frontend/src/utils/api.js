@@ -46,12 +46,18 @@ export const fetchCategories = async () => {
   return { success: true, data: categories };
 };
 
+// Stocks — handled by TradingView widget directly
 export const fetchStocks = async () => {
   return { success: true, data: [] };
 };
 
-export const fetchTenders = async () => {
-  return { success: true, data: [] };
+// Tenders — filter مناقصات category from the news feed
+export const fetchTenders = async ({ limit = 40 } = {}) => {
+  const articles = await getAllNews();
+  const tenders = articles
+    .filter((a) => a.category === 'مناقصات')
+    .slice(0, limit);
+  return { success: true, data: tenders };
 };
 
 export default axios;
