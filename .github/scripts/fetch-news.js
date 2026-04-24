@@ -19,8 +19,10 @@ const GOOGLE_NEWS_SOURCES = [
   { name: 'Google | Kuwait Stocks',     url: 'https://news.google.com/rss/search?q=Kuwait+Boursa+stock+exchange&hl=en&gl=KW&ceid=KW:en' },
   { name: 'Google | القبس',            url: 'https://news.google.com/rss/search?q=site:alqabas.com&hl=ar&gl=KW&ceid=KW:ar' },
   { name: 'Google | الأنباء',          url: 'https://news.google.com/rss/search?q=site:alanba.com.kw&hl=ar&gl=KW&ceid=KW:ar' },
-  { name: 'Google | مناقصات الكويت',   url: 'https://news.google.com/rss/search?q=مناقصات+عطاءات+الكويت+حكومية&hl=ar&gl=KW&ceid=KW:ar' },
-  { name: 'Google | Kuwait Tenders',   url: 'https://news.google.com/rss/search?q=Kuwait+tenders+CAPT+government+procurement&hl=en&gl=KW&ceid=KW:en' },
+  { name: 'Google | مناقصات الكويت',   url: 'https://news.google.com/rss/search?q=مناقصات+عطاءات+الكويت+حكومية+2026&hl=ar&gl=KW&ceid=KW:ar' },
+  { name: 'Google | Kuwait Tenders',   url: 'https://news.google.com/rss/search?q=Kuwait+tenders+CAPT+government+procurement+2026&hl=en&gl=KW&ceid=KW:en' },
+  { name: 'Google | CAPT Kuwait',      url: 'https://news.google.com/rss/search?q=CAPT+Kuwait+tender+2026&hl=en&gl=KW&ceid=KW:en' },
+  { name: 'Google | جهاز المناقصات',  url: 'https://news.google.com/rss/search?q=جهاز+المناقصات+المركزي+الكويت&hl=ar&gl=KW&ceid=KW:ar' },
 ];
 
 // ─── Secondary sources: direct Kuwaiti RSS ───────────────────────────────────
