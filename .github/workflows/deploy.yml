@@ -1,39 +1,59 @@
-name: Deploy to GitHub Pages
+name: Build & Deploy Site
 
 on:
   push:
     branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  build-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
+      - name: Checkout main
+        uses: actions/checkout@v4
         with:
-          node-version: '20'
+          ref: main
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
 
       - name: Install frontend dependencies
-        run: npm ci
-        working-directory: ./frontend
+        working-directory: frontend
+        run: npm install
 
       - name: Build frontend
-        run: npm run build
-        working-directory: ./frontend
+        working-directory: frontend
+        run: npm run build -- --base=/alqabas-economic/
 
-      - name: Install news fetcher dependencies
-        run: npm install
-        working-directory: .github/scripts
+      - name: Deploy to gh-pages (preserve news.json)
+        run: |
+          # Save built dist
+          cp -r frontend/dist /tmp/dist
 
-      - name: Fetch initial news data
-        run: node .github/scripts/fetch-news.js ./frontend/dist/news.json
+          # Fetch & checkout gh-pages
+          git fetch origin gh-pages
+          git checkout gh-pages
 
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./frontend/dist
+          # Save the latest news.json (don't wipe it)
+          cp news.json /tmp/news.json 2>/dev/null || echo '{"success":true,"total":0,"fetchedAt":"","data":[]}' > /tmp/news.json
+
+          # Clear everything except .git
+          find . -maxdepth 1 ! -name '.git' ! -name '.' -exec rm -rf {} +
+
+          # Copy built site
+          cp -r /tmp/dist/. .
+
+          # Restore news.json
+          cp /tmp/news.json news.json
+
+          # Commit & push
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git add -A
+          git diff --staged --quiet && echo "No changes to deploy" || (git commit -m "deploy: rebuild site [skip ci]" && git push origin gh-pages)
