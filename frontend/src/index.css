@@ -9,7 +9,7 @@
 
 body {
   font-family: 'Cairo', 'Tajawal', Arial, sans-serif;
-  background-color: #f4f4f4;
+  background-color: #f0f2f5;
   color: #1a1a1a;
   direction: rtl;
   text-align: right;
@@ -51,12 +51,12 @@ img {
 
 /* ===== Card Hover Effect ===== */
 .news-card {
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.22s ease, box-shadow 0.22s ease;
 }
 
 .news-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.13);
 }
 
 /* ===== Breaking News Pulse ===== */
@@ -71,27 +71,27 @@ img {
 
 /* ===== Scrollbar ===== */
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 5px;
 }
 ::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: #e8eaed;
 }
 ::-webkit-scrollbar-thumb {
   background: #0d1b2a;
-  border-radius: 3px;
+  border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #c9a227;
 }
 
 /* ===== Category Badge Colors ===== */
-.cat-أسهم { background-color: #1a5276; color: white; }
-.cat-نفط { background-color: #784212; color: white; }
-.cat-بنوك { background-color: #1a6b4a; color: white; }
-.cat-معادن { background-color: #7d6608; color: white; }
+.cat-أسهم   { background-color: #1a5276; color: white; }
+.cat-نفط    { background-color: #784212; color: white; }
+.cat-بنوك   { background-color: #1a6b4a; color: white; }
+.cat-معادن  { background-color: #7d6608; color: white; }
 .cat-عقارات { background-color: #6c3483; color: white; }
-.cat-كويت { background-color: #b30000; color: white; }
-.cat-عام { background-color: #2d2d2d; color: white; }
+.cat-كويت   { background-color: #b30000; color: white; }
+.cat-عام    { background-color: #2d2d2d; color: white; }
 
 /* ===== Gold Divider ===== */
 .gold-divider {
@@ -108,18 +108,53 @@ img {
 }
 
 /* ===== Market Ticker Numbers ===== */
-.price-up { color: #16a34a; }
+.price-up   { color: #16a34a; }
 .price-down { color: #dc2626; }
 
 /* ===== Loading Skeleton ===== */
 @keyframes shimmer {
-  0% { background-position: -468px 0; }
-  100% { background-position: 468px 0; }
+  0%   { background-position: -600px 0; }
+  100% { background-position: 600px 0; }
 }
 
 .skeleton {
-  background: linear-gradient(to right, #e8e8e8 8%, #d4d4d4 18%, #e8e8e8 33%);
-  background-size: 800px 104px;
-  animation: shimmer 1.5s linear infinite;
-  border-radius: 4px;
+  background: linear-gradient(to right, #e4e6ea 8%, #d0d3d9 18%, #e4e6ea 33%);
+  background-size: 1000px 104px;
+  animation: shimmer 1.4s linear infinite;
+  border-radius: 6px;
+}
+
+/* ===== Card Deep Shadow ===== */
+.card-shadow {
+  box-shadow: 0 1px 3px rgba(0,0,0,0.07), 0 6px 20px rgba(0,0,0,0.07);
+}
+.card-shadow:hover {
+  box-shadow: 0 4px 8px rgba(0,0,0,0.08), 0 12px 32px rgba(0,0,0,0.12);
+}
+
+/* ===== Category Tabs ===== */
+.cat-tab {
+  transition: all 0.18s ease;
+  position: relative;
+}
+.cat-tab-active::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  right: 12px;
+  left: 12px;
+  height: 2px;
+  background: #c9a227;
+  border-radius: 2px;
+}
+
+/* ===== Tender Featured Card ===== */
+.tender-featured {
+  border-left: 4px solid #c9a227;
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+}
+.tender-featured:hover {
+  border-left-color: #b30000;
+  transform: translateX(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
 }
