@@ -88,7 +88,7 @@ export default function Header() {
       </div>
 
       {/* Navigation bar */}
-      <nav className="bg-qabas-navy border-t border-qabas-gold/20">
+      <nav className="bg-qabas-navy border-t border-white/5">
         <div className="max-w-7xl mx-auto px-4">
           <ul className={`flex flex-wrap gap-0 ${menuOpen ? 'flex' : 'hidden md:flex'}`}>
             {NAV_LINKS.map((link) => (
@@ -96,7 +96,7 @@ export default function Header() {
                 <Link
                   to={link.path}
                   onClick={() => setMenuOpen(false)}
-                  className="block px-4 py-3 text-sm font-semibold text-gray-200 hover:text-qabas-gold hover:bg-qabas-navy-light transition-all duration-200 border-b-2 border-transparent hover:border-qabas-gold"
+                  className="block px-4 py-3 text-sm font-bold text-gray-300 hover:text-qabas-gold hover:bg-white/5 transition-all duration-200 border-b-2 border-transparent hover:border-qabas-gold"
                 >
                   {link.label}
                 </Link>
