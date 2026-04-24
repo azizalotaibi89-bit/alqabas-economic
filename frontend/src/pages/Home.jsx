@@ -105,21 +105,27 @@ export default function Home() {
 
         {/* Category Filter Tabs */}
         <div className="flex flex-wrap gap-2 mb-6">
-          {CATEGORIES.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => handleCategoryClick(cat)}
-              className={`px-4 py-1.5 rounded-full text-sm font-bold transition-all duration-200 ${
-                activeCategory === cat
-                  ? cat === 'مناقصات'
-                    ? 'bg-amber-600 text-white shadow-md'
-                    : 'bg-qabas-navy text-qabas-gold shadow-md'
-                  : 'bg-white text-gray-600 border border-gray-200 hover:border-qabas-navy hover:text-qabas-navy'
-              }`}
-            >
-              {cat === 'مناقصات' ? '📋 مناقصات' : cat}
-            </button>
-          ))}
+          {CATEGORIES.map((cat) => {
+            const isActive = activeCategory === cat;
+            const isTender = cat === 'مناقصات';
+            return (
+              <button
+                key={cat}
+                onClick={() => handleCategoryClick(cat)}
+                className={`px-4 py-1.5 rounded-full text-sm font-bold transition-all duration-200 border ${
+                  isActive
+                    ? isTender
+                      ? 'bg-amber-600 border-amber-600 text-white shadow-md'
+                      : 'bg-qabas-navy border-qabas-navy text-qabas-gold shadow-md'
+                    : isTender
+                      ? 'bg-white border-amber-300 text-amber-700 hover:bg-amber-50'
+                      : 'bg-white border-gray-200 text-gray-600 hover:border-qabas-navy hover:text-qabas-navy hover:bg-gray-50'
+                }`}
+              >
+                {isTender ? '📋 مناقصات' : cat}
+              </button>
+            );
+          })}
         </div>
 
         {/* ── TENDERS TAB ── */}
