@@ -146,9 +146,10 @@ export default function TendersSection() {
   // Reset showAll when tab changes
   const switchTab = (key) => { setActiveTab(key); setShowAll(false); };
 
-  // Filter: Arabic title, matches tab type — show ALL (expired shown with badge)
+  // Filter: only official KY gazette entries (have tenderCategory), match tab type
   const byTab = (tabKey) =>
     tenders.filter((t) => {
+      if (!t.tenderCategory) return false; // skip RSS news articles
       if (!isArabic(t.title)) return false;
       return getTenderType(t) === tabKey;
     });
