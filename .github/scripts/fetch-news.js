@@ -338,6 +338,19 @@ async function loginKuwaitYoum() {
 // Descriptions are pre-built by reading gazette PDFs via browser (Kuwait IP required).
 // Cache file: tender-descriptions.json  key format: "{EditionID_FK}-{FromPage}"
 // Refresh the cache by running the browser-based extractor script when new editions appear.
+
+// Strip standard gazette page header: "الكويت اليوم العدد XXXX ... م "
+function stripGazetteHeader(text) {
+  if (!text) return '';
+  // Header ends with the Gregorian date marker: " م " or " م\n"
+  const mIdx = text.indexOf(' م ');
+  if (mIdx > 0 && mIdx < 250) return text.slice(mIdx + 3).trim();
+  // Fallback: try "م\n"
+  const mIdx2 = text.indexOf(' م\n');
+  if (mIdx2 > 0 && mIdx2 < 250) return text.slice(mIdx2 + 2).trim();
+  return text;
+}
+
 function loadDescriptionsCache() {
   try {
     const cachePath = path.join(__dirname, 'tender-descriptions.json');
@@ -421,9 +434,9 @@ async function fetchKuwaitYoumTenders(auth) {
       const gazetteUrl = `${KY_ROOT}/flip/index?id=${row.EditionID_FK}&no=${row.FromPage}`;
       const tenderRef  = String(row.AdsTitle || '').trim();
 
-      // Look up Arabic text from pre-built descriptions cache
+      // Look up Arabic text from pre-built descriptions cache; strip gazette page header
       const cacheKey  = `${row.EditionID_FK}-${row.FromPage}`;
-      const pageText  = descCache[cacheKey] || '';
+      const pageText  = stripGazetteHeader(descCache[cacheKey] || '');
       // Use pageText as the display title when available; fall back to ref code
       const titleText = pageText.slice(0, 200) || tenderRef || `${cat.name} — العدد ${row.EditionNo}`;
 
