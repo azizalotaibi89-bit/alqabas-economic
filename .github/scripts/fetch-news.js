@@ -1,7 +1,7 @@
 const axios = require('axios');
 const xml2js = require('xml2js');
 const cheerio = require('cheerio');
-const pdfParse = require('pdf-parse');
+// pdf-parse removed — descriptions loaded from pre-built cache file
 const fs = require('fs');
 const path = require('path');
 const https = require('https');
@@ -334,64 +334,22 @@ async function loginKuwaitYoum() {
   }
 }
 
-// ─── Gazette PDF text extractor ───────────────────────────────���───────────────
-// The flipbook page at /flip/index?id={edId}&no={page} embeds the full edition PDF
-// as base64 inside a source="JVBER..." attribute. We decode it with pdf-parse to
-// extract Arabic text from specific gazette pages.
-async function fetchEditionPageTexts(editionId, auth) {
-  const url = `${KY_ROOT}/flip/index?id=${editionId}&no=1`;
+// ─── Gazette descriptions cache ───────────────────────────────────────────────
+// Descriptions are pre-built by reading gazette PDFs via browser (Kuwait IP required).
+// Cache file: tender-descriptions.json  key format: "{EditionID_FK}-{FromPage}"
+// Refresh the cache by running the browser-based extractor script when new editions appear.
+function loadDescriptionsCache() {
   try {
-    const resp = await axios.get(url, {
-      timeout: 120000,
-      headers: { ...HTML_HEADERS, Cookie: auth.cookies },
-      httpsAgent: KY_AGENT,
-      maxContentLength: 40 * 1024 * 1024,
-      maxBodyLength:    40 * 1024 * 1024,
-    });
-
-    const html = String(resp.data || '');
-    console.error(`  [flip] edition ${editionId}: status=${resp.status}, size=${html.length}`);
-    console.error(`  [flip] first300: ${html.substring(0, 300).replace(/[\r\n]+/g, ' ')}`);
-
-    // Also check for direct PDF URL pattern in the page
-    const pdfUrlMatch = html.match(/['"]([^'"]*\.pdf[^'"]{0,30})['"]/i);
-    if (pdfUrlMatch) console.error(`  [flip] PDF URL found: ${pdfUrlMatch[1]}`);
-
-    // Check subscriber-only message
-    if (html.includes('مشتركين') || html.includes('اشتراك')) {
-      console.error(`  [flip] ⚠ SUBSCRIBER-ONLY page detected`);
+    const cachePath = path.join(__dirname, 'tender-descriptions.json');
+    if (fs.existsSync(cachePath)) {
+      const cache = JSON.parse(fs.readFileSync(cachePath, 'utf8'));
+      console.error(`  [KY] Loaded ${Object.keys(cache).length} descriptions from cache`);
+      return cache;
     }
-
-    // PDF base64 starts with JVBER (= %PDF- in base64) and ends at closing "
-    const b64Start = html.indexOf('JVBER');
-    if (b64Start < 0) {
-      console.error(`  ! edition ${editionId}: no base64 PDF found in flipbook page`);
-      return {};
-    }
-    const b64End = html.indexOf('"', b64Start);
-    const pdfBase64 = html.slice(b64Start, b64End > b64Start ? b64End : undefined);
-    const pdfBuffer = Buffer.from(pdfBase64, 'base64');
-    console.error(`  [PDF] edition ${editionId}: ${Math.round(pdfBuffer.length / 1024)}KB PDF decoded`);
-
-    // Extract text per page using pdf-parse pagerender callback
-    const pageTexts = {};
-    await pdfParse(pdfBuffer, {
-      pagerender: (pageData) => {
-        const pageNum = pageData.pageIndex + 1;
-        return pageData.getTextContent({ normalizeWhitespace: true }).then((content) => {
-          const text = content.items.map((item) => item.str).join(' ').replace(/\s+/g, ' ').trim();
-          if (text && /[؀-ۿ]/.test(text)) pageTexts[pageNum] = text;  // only keep Arabic pages
-          return text;
-        });
-      },
-    });
-
-    console.error(`  [PDF] edition ${editionId}: ${Object.keys(pageTexts).length} Arabic pages extracted`);
-    return pageTexts;
   } catch (e) {
-    console.error(`  ! edition ${editionId} PDF fetch error: ${e.message.split('\n')[0]}`);
-    return {};
+    console.error(`  ! Could not load descriptions cache: ${e.message}`);
   }
+  return {};
 }
 
 async function fetchKuwaitYoumTenders(auth) {
@@ -435,30 +393,10 @@ async function fetchKuwaitYoumTenders(auth) {
     }
   }
 
-  // ── Step 2: collect unique edition IDs across all categories ──────────────
-  const editionIdMap = {};  // editionId → first row seen (for logging)
-  for (const { cat, rows } of Object.values(allCatRows)) {
-    const seenNos = [];
-    for (const r of rows) {
-      if (!seenNos.includes(r.EditionNo)) seenNos.push(r.EditionNo);
-      if (seenNos.length >= LAST_N_ISSUES) break;
-    }
-    const targetEditions = new Set(seenNos);
-    for (const r of rows) {
-      if (targetEditions.has(r.EditionNo) && !editionIdMap[r.EditionID_FK]) {
-        editionIdMap[r.EditionID_FK] = r.EditionNo;
-      }
-    }
-  }
+  // ── Step 2: load descriptions cache (pre-built from gazette PDFs via browser) ──
+  const descCache = loadDescriptionsCache();
 
-  // ── Step 3: fetch PDF once per unique edition and extract page texts ───────
-  console.error(`\n  [KY] Fetching gazette PDFs for ${Object.keys(editionIdMap).length} editions...`);
-  const editionPageTexts = {};
-  for (const edId of Object.keys(editionIdMap)) {
-    editionPageTexts[edId] = await fetchEditionPageTexts(edId, auth);
-  }
-
-  // ── Step 4: build tender articles, attaching page text as tenderSubject ───
+  // ── Step 3: build tender articles, attaching cached page text as tenderSubject ──
   for (const { cat, rows } of Object.values(allCatRows)) {
     if (!rows.length) continue;
 
@@ -483,8 +421,9 @@ async function fetchKuwaitYoumTenders(auth) {
       const gazetteUrl = `${KY_ROOT}/flip/index?id=${row.EditionID_FK}&no=${row.FromPage}`;
       const tenderRef  = String(row.AdsTitle || '').trim();
 
-      // Get Arabic text from the gazette PDF page (the tender's actual description)
-      const pageText  = (editionPageTexts[row.EditionID_FK] || {})[row.FromPage] || '';
+      // Look up Arabic text from pre-built descriptions cache
+      const cacheKey  = `${row.EditionID_FK}-${row.FromPage}`;
+      const pageText  = descCache[cacheKey] || '';
       // Use pageText as the display title when available; fall back to ref code
       const titleText = pageText.slice(0, 200) || tenderRef || `${cat.name} — العدد ${row.EditionNo}`;
 
