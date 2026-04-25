@@ -368,32 +368,36 @@ async function fetchKuwaitYoumTenders(auth) {
       const rows = resp.data?.data || [];
       if (!rows.length) { console.error(`  ! كويت اليوم ${cat.name}: 0 rows`); continue; }
 
-      // Probe multiple approaches to find Arabic tender descriptions
+      // Probe: log sample AdsTitle values and fetch category page HTML for DataTable column config
       if (rows.length > 0 && cat.id === 1) { // probe once on category 1 = مناقصات
         const probeId  = rows[0].ID;
         const edId     = rows[0].EditionID_FK;
         const fromPage = rows[0].FromPage;
 
-        // A) New detail URL patterns (AdsDetails/Ads/Details already confirmed 404)
-        const detailUrls = [
-          `${KY_BASE}/Ads/${probeId}`,
-          `${KY_BASE}/AdsView/${probeId}`,
-          `${KY_BASE}/AdsDisplay/${probeId}`,
-          `${KY_BASE}/AdItem/${probeId}`,
-        ];
-        for (const dUrl of detailUrls) {
-          try {
-            const dr = await axios.get(dUrl, {
-              timeout: 10000,
-              headers: { ...HTML_HEADERS, Cookie: auth.cookies },
-              httpsAgent: KY_AGENT,
-              validateStatus: s => s < 500,
-            });
-            const snippet = String(dr.data || '').slice(0, 600).replace(/\s+/g, ' ');
-            console.error(`  [detail probe] ${dUrl} → status=${dr.status} snippet: ${snippet.slice(0, 300)}`);
-          } catch (pe) {
-            console.error(`  [detail probe] ${dUrl} → error: ${pe.message.split('\n')[0]}`);
-          }
+        // Log sample AdsTitle values from different rows to see if any have Arabic text
+        const sampleTitles = rows.slice(0, 15).map(r => ({ id: r.ID, title: r.AdsTitle, keys: Object.keys(r) }));
+        console.error('  [sample rows 0-14]:', JSON.stringify(sampleTitles));
+
+        // Fetch the AdsCategory/1 page HTML to extract DataTable column configuration from JS
+        try {
+          const catHtml = (await axios.get(`${KY_BASE}/AdsCategory/1`, {
+            timeout: 20000,
+            headers: { ...HTML_HEADERS, Cookie: auth.cookies },
+            httpsAgent: KY_AGENT,
+          })).data;
+          // Extract DataTable initialization JS
+          const dtInit = (catHtml.match(/\.DataTable\s*\(\s*\{[\s\S]{0,3000}?\}\s*\)/g) || []);
+          const colBlock = (catHtml.match(/columns\s*:\s*\[[\s\S]{0,2000}?\]/g) || []);
+          const ajaxBlock = (catHtml.match(/ajax\s*:\s*\{[\s\S]{0,400}?\}/g) || []);
+          console.error('  [catpage] DataTable inits found:', dtInit.length);
+          if (dtInit.length) console.error('  [catpage] DataTable init (first):', dtInit[0].slice(0, 600));
+          if (colBlock.length) console.error('  [catpage] columns block:', colBlock[0].slice(0, 800));
+          if (ajaxBlock.length) console.error('  [catpage] ajax block:', ajaxBlock[0].slice(0, 300));
+          // Arabic text already in the HTML (server-side content before DataTable loads)
+          const arabicInPage = (catHtml.match(/[؀-ۿ][؀-ۿ\s،,.]{25,}/g) || []).slice(0, 5);
+          console.error('  [catpage] arabic snippets in HTML:', JSON.stringify(arabicInPage));
+        } catch (pe) {
+          console.error('  [catpage] error:', pe.message.split('\n')[0]);
         }
 
         // B) Flipbook page — look for PDF URL, Arabic text, or data API refs
