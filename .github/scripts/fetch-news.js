@@ -61,7 +61,7 @@ function detectCategory(text) {
   if (t.match(/بنك|مصرف|bank|فائدة|قرض|ائتمان|تمويل|مصارف|central bank/)) return 'بنوك';
   if (t.match(/عقار|real estate|property|مشروع|مجمع|أراضي|شقق|عقارات/)) return 'عقارات';
   if (t.match(/ذهب|gold|معدن|فضة|silver|نحاس|copper|platinum/)) return 'معادن';
-  if (t.match(/مناقصة|مناقصات|عطاء|عطاءات|مزايدة|ممارسة|ممارسات|تلزيم|tender|procurement|capt|جهاز المناقصات|كويت اليوم/)) return 'مناقصات';
+  if (t.match(/مناقصة|مناقصات|عطاء|عطاءات|مزايدة|ممارسة|ممارسات|تلزيم|tender|procurement|جهاز المناقصات|كويت اليوم/)) return 'مناقصات';
   if (t.match(/كويت|kuwait|حكومة|وزير|أمير|مجلس الأمة|ديوان|amiri/)) return 'كويت';
   return 'عام';
 }
@@ -165,7 +165,9 @@ async function parseRSSXml(xmlData, sourceName) {
 async function fetchRSSSource(source, timeout = 15000) {
   try {
     const resp = await axios.get(source.url, { timeout, headers: RSS_HEADERS, maxRedirects: 5 });
-    const articles = await parseRSSXml(resp.data, source.name);
+    let articles = await parseRSSXml(resp.data, source.name);
+    // Filter out garbled PDF files from CAPT file server (old dates, broken Arabic text)
+    articles = articles.filter(a => !String(a.link || '').includes('files.capt.gov.kw'));
     console.error(`  ${articles.length > 0 ? '✓' : '!'} ${source.name}: ${articles.length} articles`);
     return articles;
   } catch (e) {
@@ -408,9 +410,12 @@ async function fetchKuwaitYoumTenders(auth) {
   return articles;
 }
 
-// ─── Kuwait Al-Youm via Google News RSS (fallback only) ──────────────────────
+// ─── Kuwait tender RSS — newspaper articles about live tenders ────────────────
+// NOTE: site:capt.gov.kw returns old garbled PDFs. Use keyword searches instead.
 const KUWAIT_YOUM_RSS_SOURCES = [
-  { name: 'Google | مناقصات CAPT', url: 'https://news.google.com/rss/search?q=site:capt.gov.kw&hl=ar&gl=KW&ceid=KW:ar' },
+  { name: 'Google | مناقصات الكويت',  url: 'https://news.google.com/rss/search?q=مناقصات+جهاز+المناقصات+الكويت&hl=ar&gl=KW&ceid=KW:ar' },
+  { name: 'Google | عطاءات ممارسات',  url: 'https://news.google.com/rss/search?q=عطاءات+ممارسات+مزايدات+الكويت&hl=ar&gl=KW&ceid=KW:ar' },
+  { name: 'Google | Kuwait tenders',   url: 'https://news.google.com/rss/search?q=Kuwait+tender+procurement+2026&hl=en&gl=KW&ceid=KW:en' },
 ];
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
