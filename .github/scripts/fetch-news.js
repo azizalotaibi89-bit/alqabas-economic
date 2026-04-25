@@ -248,7 +248,8 @@ async function scrapeCAPT() {
 }
 
 // ─── Kuwait Al-Youm authenticated API (كويت اليوم الرسمية — kuwaitalyawm.media.gov.kw) ───
-const KY_BASE = 'https://kuwaitalyawm.media.gov.kw/online';
+const KY_ROOT = 'https://kuwaitalyawm.media.gov.kw';        // root — login form lives here
+const KY_BASE = 'https://kuwaitalyawm.media.gov.kw/online'; // content — AdsCategory, etc.
 // KY server has a self-signed / untrusted certificate — disable verification for these requests only
 const KY_AGENT = new https.Agent({ rejectUnauthorized: false });
 
@@ -279,9 +280,9 @@ async function loginKuwaitYoum() {
   const cookieStr = () => Object.values(cookieJar).join('; ');
 
   try {
-    // 1. GET login page → extract CSRF token
-    const loginUrl = `${KY_BASE}/Account/LoginOnline`;
-    const pageResp = await axios.get(loginUrl, {
+    // 1. GET root homepage → extract CSRF token (login form is on the root page)
+    const loginUrl = `${KY_ROOT}/Account/LoginOnline`;
+    const pageResp = await axios.get(`${KY_ROOT}/`, {
       timeout: 30000, headers: HTML_HEADERS, maxRedirects: 5, httpsAgent: KY_AGENT,
     });
     mergeCookies(pageResp.headers);
