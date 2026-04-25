@@ -1,6 +1,7 @@
 const axios = require('axios');
 const xml2js = require('xml2js');
 const cheerio = require('cheerio');
+const pdfParse = require('pdf-parse');
 const fs = require('fs');
 const path = require('path');
 const https = require('https');
@@ -333,13 +334,62 @@ async function loginKuwaitYoum() {
   }
 }
 
+// ─── Gazette PDF text extractor ───────────────────────────────���───────────────
+// The flipbook page at /flip/index?id={edId}&no={page} embeds the full edition PDF
+// as base64 inside a source="JVBER..." attribute. We decode it with pdf-parse to
+// extract Arabic text from specific gazette pages.
+async function fetchEditionPageTexts(editionId, auth) {
+  const url = `${KY_ROOT}/flip/index?id=${editionId}&no=1`;
+  try {
+    const resp = await axios.get(url, {
+      timeout: 120000,
+      headers: { ...HTML_HEADERS, Cookie: auth.cookies },
+      httpsAgent: KY_AGENT,
+      maxContentLength: 40 * 1024 * 1024,
+      maxBodyLength:    40 * 1024 * 1024,
+    });
+
+    const html = String(resp.data || '');
+    // PDF base64 starts with JVBER (= %PDF- in base64) and ends at closing "
+    const b64Start = html.indexOf('JVBER');
+    if (b64Start < 0) {
+      console.error(`  ! edition ${editionId}: no base64 PDF found in flipbook page`);
+      return {};
+    }
+    const b64End = html.indexOf('"', b64Start);
+    const pdfBase64 = html.slice(b64Start, b64End > b64Start ? b64End : undefined);
+    const pdfBuffer = Buffer.from(pdfBase64, 'base64');
+    console.error(`  [PDF] edition ${editionId}: ${Math.round(pdfBuffer.length / 1024)}KB PDF decoded`);
+
+    // Extract text per page using pdf-parse pagerender callback
+    const pageTexts = {};
+    await pdfParse(pdfBuffer, {
+      pagerender: (pageData) => {
+        const pageNum = pageData.pageIndex + 1;
+        return pageData.getTextContent({ normalizeWhitespace: true }).then((content) => {
+          const text = content.items.map((item) => item.str).join(' ').replace(/\s+/g, ' ').trim();
+          if (text && /[؀-ۿ]/.test(text)) pageTexts[pageNum] = text;  // only keep Arabic pages
+          return text;
+        });
+      },
+    });
+
+    console.error(`  [PDF] edition ${editionId}: ${Object.keys(pageTexts).length} Arabic pages extracted`);
+    return pageTexts;
+  } catch (e) {
+    console.error(`  ! edition ${editionId} PDF fetch error: ${e.message.split('\n')[0]}`);
+    return {};
+  }
+}
+
 async function fetchKuwaitYoumTenders(auth) {
   const articles = [];
   const LAST_N_ISSUES = 4;
 
+  // ── Step 1: collect all rows from all categories ───────────────────────────
+  const allCatRows = {};
   for (const cat of KY_CATEGORIES) {
     try {
-      // Build DataTable POST body — sort by ID desc (newest first), fetch top 300
       const params = new URLSearchParams({
         draw: '1', start: '0', length: '300',
         '__RequestVerificationToken': auth.csrfToken,
@@ -365,142 +415,84 @@ async function fetchKuwaitYoumTenders(auth) {
         httpsAgent: KY_AGENT,
       });
 
-      const rows = resp.data?.data || [];
-      if (!rows.length) { console.error(`  ! كويت اليوم ${cat.name}: 0 rows`); continue; }
-
-      // Probe: log sample AdsTitle values and fetch category page HTML for DataTable column config
-      if (rows.length > 0 && cat.id === 1) { // probe once on category 1 = مناقصات
-        const probeId  = rows[0].ID;
-        const edId     = rows[0].EditionID_FK;
-        const fromPage = rows[0].FromPage;
-
-        // Log sample AdsTitle values from different rows to see if any have Arabic text
-        const sampleTitles = rows.slice(0, 15).map(r => ({ id: r.ID, title: r.AdsTitle, keys: Object.keys(r) }));
-        console.error('  [sample rows 0-14]:', JSON.stringify(sampleTitles));
-
-        // Fetch the AdsCategory/1 page HTML to extract DataTable column configuration from JS
-        try {
-          const catHtml = (await axios.get(`${KY_BASE}/AdsCategory/1`, {
-            timeout: 20000,
-            headers: { ...HTML_HEADERS, Cookie: auth.cookies },
-            httpsAgent: KY_AGENT,
-          })).data;
-          // Extract DataTable initialization JS
-          const dtInit = (catHtml.match(/\.DataTable\s*\(\s*\{[\s\S]{0,3000}?\}\s*\)/g) || []);
-          const colBlock = (catHtml.match(/columns\s*:\s*\[[\s\S]{0,2000}?\]/g) || []);
-          const ajaxBlock = (catHtml.match(/ajax\s*:\s*\{[\s\S]{0,400}?\}/g) || []);
-          console.error('  [catpage] DataTable inits found:', dtInit.length);
-          if (dtInit.length) console.error('  [catpage] DataTable init (first):', dtInit[0].slice(0, 600));
-          if (colBlock.length) console.error('  [catpage] columns block:', colBlock[0].slice(0, 800));
-          if (ajaxBlock.length) console.error('  [catpage] ajax block:', ajaxBlock[0].slice(0, 300));
-          // Arabic text already in the HTML (server-side content before DataTable loads)
-          const arabicInPage = (catHtml.match(/[؀-ۿ][؀-ۿ\s،,.]{25,}/g) || []).slice(0, 5);
-          console.error('  [catpage] arabic snippets in HTML:', JSON.stringify(arabicInPage));
-        } catch (pe) {
-          console.error('  [catpage] error:', pe.message.split('\n')[0]);
-        }
-
-        // B) Flipbook page — look for PDF URL, Arabic text, or data API refs
-        const flipUrl = `${KY_ROOT}/flip/index?id=${edId}&no=${fromPage}`;
-        try {
-          const fr = await axios.get(flipUrl, {
-            timeout: 20000,
-            headers: { ...HTML_HEADERS, Cookie: auth.cookies },
-            httpsAgent: KY_AGENT,
-            validateStatus: s => s < 500,
-          });
-          const fhtml = String(fr.data || '');
-          // Look for PDF or data source URLs
-          const urlMatches = (fhtml.match(/["'`]((?:https?:\/\/[^"'`\s<>]{5,200})|(?:\/[^"'`\s<>]{5,200}))['"` ]/g) || [])
-            .map(m => m.replace(/^["'`]|["'`\s]$/g, ''))
-            .filter(u => /pdf|flip|page|book|GetFile|getpdf|document|content|edition|issue/i.test(u))
-            .slice(0, 10);
-          // Arabic text snippets from the page
-          const arabicSamples = (fhtml.match(/[؀-ۿ][؀-ۿ\s،,.]{15,}/g) || []).slice(0, 5);
-          console.error(`  [flip probe] ${flipUrl} → status=${fr.status}`);
-          console.error(`  [flip probe] url matches:`, JSON.stringify(urlMatches));
-          console.error(`  [flip probe] arabic samples:`, JSON.stringify(arabicSamples));
-          // Also check for script variable assignments that might hold PDF data
-          const jsVars = (fhtml.match(/(?:var|let|const|window\.[a-zA-Z]+)\s*=\s*["'`{[][^;]{5,120}/g) || []).slice(0, 8);
-          console.error(`  [flip probe] js vars:`, JSON.stringify(jsVars));
-        } catch (pe) {
-          console.error(`  [flip probe] ${flipUrl} → error: ${pe.message.split('\n')[0]}`);
-        }
-
-        // C) Try flipbook JSON/API endpoints directly
-        const flipApiUrls = [
-          `${KY_ROOT}/flip/api/page?id=${edId}&page=${fromPage}`,
-          `${KY_ROOT}/flip/getpage?id=${edId}&no=${fromPage}`,
-          `${KY_ROOT}/flip/content?id=${edId}&page=${fromPage}`,
-          `${KY_ROOT}/flip/pdf/${edId}`,
-          `${KY_ROOT}/flip/GetPdf?id=${edId}`,
-          `${KY_ROOT}/flip/Edition/${edId}`,
-        ];
-        for (const fUrl of flipApiUrls) {
-          try {
-            const fr2 = await axios.get(fUrl, {
-              timeout: 10000,
-              headers: { ...HTML_HEADERS, Cookie: auth.cookies },
-              httpsAgent: KY_AGENT,
-              validateStatus: s => s < 500,
-              responseType: 'arraybuffer',
-            });
-            const ct = fr2.headers['content-type'] || '';
-            const preview = Buffer.from(fr2.data).slice(0, 200).toString('utf8').replace(/\s+/g, ' ');
-            console.error(`  [flip api] ${fUrl} → status=${fr2.status} ct=${ct} preview: ${preview.slice(0, 200)}`);
-          } catch (pe) {
-            console.error(`  [flip api] ${fUrl} → error: ${pe.message.split('\n')[0]}`);
-          }
-        }
-      }
-
-      // Collect the last N unique edition numbers from newest-first results
-      const seenEditions = [];
-      for (const r of rows) {
-        if (!seenEditions.includes(r.EditionNo)) seenEditions.push(r.EditionNo);
-        if (seenEditions.length >= LAST_N_ISSUES) break;
-      }
-      const targetEditions = new Set(seenEditions);
-
-      let count = 0;
-      for (const row of rows) {
-        if (!targetEditions.has(row.EditionNo)) continue;
-
-        // Parse /Date(ms)/ format
-        const tsMatch = String(row.EditionDate).match(/\d+/);
-        const pubDate = tsMatch ? new Date(parseInt(tsMatch[0])) : new Date();
-
-        // Estimate deadline and urgency
-        const estimatedClose = new Date(pubDate.getTime() + cat.closeDays * 86400000);
-        const daysToClose = Math.ceil((estimatedClose.getTime() - Date.now()) / 86400000);
-        const urgency = daysToClose < 14 ? 'urgent' : daysToClose < 30 ? 'medium' : 'normal';
-
-        // Gazette PDF viewer URL
-        const gazetteUrl = `https://kuwaitalyawm.media.gov.kw/flip/index?id=${row.EditionID_FK}&no=${row.FromPage}`;
-        const tenderRef = String(row.AdsTitle || '').trim();
-
-        // Title = reference code (AdsTitle is only a ref number; Arabic text not in DataTable API)
-        const titleText = tenderRef || `${cat.name} — العدد ${row.EditionNo}`;
-
-        // Description = metadata strip (pipe-separated for TendersSection.jsx parseMetaFromDesc)
-        const desc = [cat.name, 'الكويت اليوم الرسمية', `العدد ${row.EditionNo}`, pubDate.toLocaleDateString('ar-KW'), `صفحة ${row.FromPage}`].join(' | ');
-
-        const art = makeArticle(titleText, desc, gazetteUrl, 'كويت اليوم | رسمي', pubDate.toISOString());
-        if (art) {
-          art.urgency = urgency;
-          art.daysToClose = daysToClose;
-          art.tenderRef = tenderRef;
-          art.editionNo = row.EditionNo;
-          art.tenderCategory = cat.name;
-          articles.push(art);
-          count++;
-        }
-      }
-
-      console.error(`  ✓ كويت اليوم ${cat.name}: ${count} tenders (issues ${[...targetEditions].join(', ')})`);
+      allCatRows[cat.id] = { cat, rows: resp.data?.data || [] };
+      console.error(`  ✓ كويت اليوم ${cat.name}: ${allCatRows[cat.id].rows.length} rows fetched`);
     } catch (e) {
       console.error(`  ✗ كويت اليوم ${cat.name}: ${e.message.split('\n')[0]}`);
+      allCatRows[cat.id] = { cat, rows: [] };
     }
+  }
+
+  // ── Step 2: collect unique edition IDs across all categories ──────────────
+  const editionIdMap = {};  // editionId → first row seen (for logging)
+  for (const { cat, rows } of Object.values(allCatRows)) {
+    const seenNos = [];
+    for (const r of rows) {
+      if (!seenNos.includes(r.EditionNo)) seenNos.push(r.EditionNo);
+      if (seenNos.length >= LAST_N_ISSUES) break;
+    }
+    const targetEditions = new Set(seenNos);
+    for (const r of rows) {
+      if (targetEditions.has(r.EditionNo) && !editionIdMap[r.EditionID_FK]) {
+        editionIdMap[r.EditionID_FK] = r.EditionNo;
+      }
+    }
+  }
+
+  // ── Step 3: fetch PDF once per unique edition and extract page texts ───────
+  console.error(`\n  [KY] Fetching gazette PDFs for ${Object.keys(editionIdMap).length} editions...`);
+  const editionPageTexts = {};
+  for (const edId of Object.keys(editionIdMap)) {
+    editionPageTexts[edId] = await fetchEditionPageTexts(edId, auth);
+  }
+
+  // ── Step 4: build tender articles, attaching page text as tenderSubject ───
+  for (const { cat, rows } of Object.values(allCatRows)) {
+    if (!rows.length) continue;
+
+    const seenNos = [];
+    for (const r of rows) {
+      if (!seenNos.includes(r.EditionNo)) seenNos.push(r.EditionNo);
+      if (seenNos.length >= LAST_N_ISSUES) break;
+    }
+    const targetEditions = new Set(seenNos);
+
+    let count = 0;
+    for (const row of rows) {
+      if (!targetEditions.has(row.EditionNo)) continue;
+
+      const tsMatch = String(row.EditionDate).match(/\d+/);
+      const pubDate = tsMatch ? new Date(parseInt(tsMatch[0])) : new Date();
+
+      const estimatedClose = new Date(pubDate.getTime() + cat.closeDays * 86400000);
+      const daysToClose    = Math.ceil((estimatedClose.getTime() - Date.now()) / 86400000);
+      const urgency        = daysToClose < 14 ? 'urgent' : daysToClose < 30 ? 'medium' : 'normal';
+
+      const gazetteUrl = `${KY_ROOT}/flip/index?id=${row.EditionID_FK}&no=${row.FromPage}`;
+      const tenderRef  = String(row.AdsTitle || '').trim();
+
+      // Get Arabic text from the gazette PDF page (the tender's actual description)
+      const pageText  = (editionPageTexts[row.EditionID_FK] || {})[row.FromPage] || '';
+      // Use pageText as the display title when available; fall back to ref code
+      const titleText = pageText.slice(0, 200) || tenderRef || `${cat.name} — العدد ${row.EditionNo}`;
+
+      const desc = [cat.name, 'الكويت اليوم الرسمية', `العدد ${row.EditionNo}`, pubDate.toLocaleDateString('ar-KW'), `صفحة ${row.FromPage}`].join(' | ');
+
+      const art = makeArticle(titleText, desc, gazetteUrl, 'كويت اليوم | رسمي', pubDate.toISOString());
+      if (art) {
+        art.urgency        = urgency;
+        art.daysToClose    = daysToClose;
+        art.tenderRef      = tenderRef;
+        art.tenderSubject  = pageText.slice(0, 500) || null;
+        art.tenderMinistry = null;  // may parse from pageText in future
+        art.editionNo      = row.EditionNo;
+        art.tenderCategory = cat.name;
+        articles.push(art);
+        count++;
+      }
+    }
+
+    console.error(`  ✓ كويت اليوم ${cat.name}: ${count} tenders built`);
   }
 
   return articles;
