@@ -3,6 +3,7 @@ const xml2js = require('xml2js');
 const cheerio = require('cheerio');
 const fs = require('fs');
 const path = require('path');
+const https = require('https');
 
 const OUTPUT_PATH = process.argv[2] || path.join(__dirname, '../../frontend/public/news.json');
 
@@ -248,6 +249,8 @@ async function scrapeCAPT() {
 
 // ─── Kuwait Al-Youm authenticated API (كويت اليوم الرسمية — kuwaitalyawm.media.gov.kw) ───
 const KY_BASE = 'https://kuwaitalyawm.media.gov.kw/online';
+// KY server has a self-signed / untrusted certificate — disable verification for these requests only
+const KY_AGENT = new https.Agent({ rejectUnauthorized: false });
 
 // Category definitions with estimated tender open-duration (days)
 const KY_CATEGORIES = [
@@ -279,7 +282,7 @@ async function loginKuwaitYoum() {
     // 1. GET login page → extract CSRF token
     const loginUrl = `${KY_BASE}/Account/LoginOnline`;
     const pageResp = await axios.get(loginUrl, {
-      timeout: 30000, headers: HTML_HEADERS, maxRedirects: 5,
+      timeout: 30000, headers: HTML_HEADERS, maxRedirects: 5, httpsAgent: KY_AGENT,
     });
     mergeCookies(pageResp.headers);
     const $lp = cheerio.load(pageResp.data);
@@ -300,6 +303,7 @@ async function loginKuwaitYoum() {
       },
       maxRedirects: 5,
       validateStatus: s => s < 500,
+      httpsAgent: KY_AGENT,
     });
     mergeCookies(loginResp.headers);
 
@@ -308,6 +312,7 @@ async function loginKuwaitYoum() {
       timeout: 30000,
       headers: { ...HTML_HEADERS, 'Cookie': cookieStr() },
       maxRedirects: 5,
+      httpsAgent: KY_AGENT,
     });
     mergeCookies(catResp.headers);
     const $cat = cheerio.load(catResp.data);
@@ -356,6 +361,7 @@ async function fetchKuwaitYoumTenders(auth) {
           'Cookie': auth.cookies,
           'Referer': `${KY_BASE}/AdsCategory/${cat.id}`,
         },
+        httpsAgent: KY_AGENT,
       });
 
       const rows = resp.data?.data || [];
