@@ -393,8 +393,9 @@ async function fetchKuwaitYoumTenders(auth) {
         const gazetteUrl = `https://kuwaitalyawm.media.gov.kw/flip/index?id=${row.EditionID_FK}&no=${row.FromPage}`;
         const tenderRef = String(row.AdsTitle || '').trim();
 
-        const titleText = `${cat.name} | ${tenderRef} — العدد ${row.EditionNo}`;
-        const desc = `جريدة الكويت اليوم الرسمية • العدد ${row.EditionNo} • ${pubDate.toLocaleDateString('ar-KW')} • صفحة ${row.FromPage}`;
+        // Title = the actual tender subject; description = edition metadata
+        const titleText = tenderRef || `${cat.name} — العدد ${row.EditionNo}`;
+        const desc = `${cat.name} | الكويت اليوم الرسمية | العدد ${row.EditionNo} | ${pubDate.toLocaleDateString('ar-KW')} | صفحة ${row.FromPage}`;
 
         const art = makeArticle(titleText, desc, gazetteUrl, 'كويت اليوم | رسمي', pubDate.toISOString());
         if (art) {
