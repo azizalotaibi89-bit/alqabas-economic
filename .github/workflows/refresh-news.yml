@@ -28,6 +28,9 @@ jobs:
 
       - name: Fetch news
         run: node .github/scripts/fetch-news.js /tmp/news.json
+        env:
+          KUWAIT_YOUM_USER: ${{ secrets.KUWAIT_YOUM_USER }}
+          KUWAIT_YOUM_PASS: ${{ secrets.KUWAIT_YOUM_PASS }}
 
       - name: Push news.json to gh-pages
         run: |
