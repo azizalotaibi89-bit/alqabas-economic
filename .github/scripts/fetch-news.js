@@ -368,13 +368,18 @@ async function fetchKuwaitYoumTenders(auth) {
       const rows = resp.data?.data || [];
       if (!rows.length) { console.error(`  ! كويت اليوم ${cat.name}: 0 rows`); continue; }
 
-      // Probe AdsDetails endpoint on the first row to find Arabic description source
-      if (rows.length > 0 && cat.id === 1) { // only probe once (category 1 = مناقصات)
-        const probeId = rows[0].ID;
+      // Probe multiple approaches to find Arabic tender descriptions
+      if (rows.length > 0 && cat.id === 1) { // probe once on category 1 = مناقصات
+        const probeId  = rows[0].ID;
+        const edId     = rows[0].EditionID_FK;
+        const fromPage = rows[0].FromPage;
+
+        // A) New detail URL patterns (AdsDetails/Ads/Details already confirmed 404)
         const detailUrls = [
-          `${KY_BASE}/AdsDetails/${probeId}`,
-          `${KY_BASE}/Ads/Details/${probeId}`,
-          `${KY_BASE}/AdsInfo/${probeId}`,
+          `${KY_BASE}/Ads/${probeId}`,
+          `${KY_BASE}/AdsView/${probeId}`,
+          `${KY_BASE}/AdsDisplay/${probeId}`,
+          `${KY_BASE}/AdItem/${probeId}`,
         ];
         for (const dUrl of detailUrls) {
           try {
@@ -385,9 +390,62 @@ async function fetchKuwaitYoumTenders(auth) {
               validateStatus: s => s < 500,
             });
             const snippet = String(dr.data || '').slice(0, 600).replace(/\s+/g, ' ');
-            console.error(`  [KY detail probe ${dUrl}] status=${dr.status} snippet:`, snippet.slice(0, 300));
+            console.error(`  [detail probe] ${dUrl} → status=${dr.status} snippet: ${snippet.slice(0, 300)}`);
           } catch (pe) {
-            console.error(`  [KY detail probe ${dUrl}] error: ${pe.message.split('\n')[0]}`);
+            console.error(`  [detail probe] ${dUrl} → error: ${pe.message.split('\n')[0]}`);
+          }
+        }
+
+        // B) Flipbook page — look for PDF URL, Arabic text, or data API refs
+        const flipUrl = `${KY_ROOT}/flip/index?id=${edId}&no=${fromPage}`;
+        try {
+          const fr = await axios.get(flipUrl, {
+            timeout: 20000,
+            headers: { ...HTML_HEADERS, Cookie: auth.cookies },
+            httpsAgent: KY_AGENT,
+            validateStatus: s => s < 500,
+          });
+          const fhtml = String(fr.data || '');
+          // Look for PDF or data source URLs
+          const urlMatches = (fhtml.match(/["'`]((?:https?:\/\/[^"'`\s<>]{5,200})|(?:\/[^"'`\s<>]{5,200}))['"` ]/g) || [])
+            .map(m => m.replace(/^["'`]|["'`\s]$/g, ''))
+            .filter(u => /pdf|flip|page|book|GetFile|getpdf|document|content|edition|issue/i.test(u))
+            .slice(0, 10);
+          // Arabic text snippets from the page
+          const arabicSamples = (fhtml.match(/[؀-ۿ][؀-ۿ\s،,.]{15,}/g) || []).slice(0, 5);
+          console.error(`  [flip probe] ${flipUrl} → status=${fr.status}`);
+          console.error(`  [flip probe] url matches:`, JSON.stringify(urlMatches));
+          console.error(`  [flip probe] arabic samples:`, JSON.stringify(arabicSamples));
+          // Also check for script variable assignments that might hold PDF data
+          const jsVars = (fhtml.match(/(?:var|let|const|window\.[a-zA-Z]+)\s*=\s*["'`{[][^;]{5,120}/g) || []).slice(0, 8);
+          console.error(`  [flip probe] js vars:`, JSON.stringify(jsVars));
+        } catch (pe) {
+          console.error(`  [flip probe] ${flipUrl} → error: ${pe.message.split('\n')[0]}`);
+        }
+
+        // C) Try flipbook JSON/API endpoints directly
+        const flipApiUrls = [
+          `${KY_ROOT}/flip/api/page?id=${edId}&page=${fromPage}`,
+          `${KY_ROOT}/flip/getpage?id=${edId}&no=${fromPage}`,
+          `${KY_ROOT}/flip/content?id=${edId}&page=${fromPage}`,
+          `${KY_ROOT}/flip/pdf/${edId}`,
+          `${KY_ROOT}/flip/GetPdf?id=${edId}`,
+          `${KY_ROOT}/flip/Edition/${edId}`,
+        ];
+        for (const fUrl of flipApiUrls) {
+          try {
+            const fr2 = await axios.get(fUrl, {
+              timeout: 10000,
+              headers: { ...HTML_HEADERS, Cookie: auth.cookies },
+              httpsAgent: KY_AGENT,
+              validateStatus: s => s < 500,
+              responseType: 'arraybuffer',
+            });
+            const ct = fr2.headers['content-type'] || '';
+            const preview = Buffer.from(fr2.data).slice(0, 200).toString('utf8').replace(/\s+/g, ' ');
+            console.error(`  [flip api] ${fUrl} → status=${fr2.status} ct=${ct} preview: ${preview.slice(0, 200)}`);
+          } catch (pe) {
+            console.error(`  [flip api] ${fUrl} → error: ${pe.message.split('\n')[0]}`);
           }
         }
       }
