@@ -146,12 +146,10 @@ export default function TendersSection() {
   // Reset showAll when tab changes
   const switchTab = (key) => { setActiveTab(key); setShowAll(false); };
 
-  // Filter: Arabic, not expired, matches tab type
+  // Filter: Arabic title, matches tab type — show ALL (expired shown with badge)
   const byTab = (tabKey) =>
     tenders.filter((t) => {
       if (!isArabic(t.title)) return false;
-      const closing = extractOrEstimateClosing(t);
-      if (closing < new Date()) return false;
       return getTenderType(t) === tabKey;
     });
 
