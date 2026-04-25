@@ -350,6 +350,18 @@ async function fetchEditionPageTexts(editionId, auth) {
     });
 
     const html = String(resp.data || '');
+    console.error(`  [flip] edition ${editionId}: status=${resp.status}, size=${html.length}`);
+    console.error(`  [flip] first300: ${html.substring(0, 300).replace(/[\r\n]+/g, ' ')}`);
+
+    // Also check for direct PDF URL pattern in the page
+    const pdfUrlMatch = html.match(/['"]([^'"]*\.pdf[^'"]{0,30})['"]/i);
+    if (pdfUrlMatch) console.error(`  [flip] PDF URL found: ${pdfUrlMatch[1]}`);
+
+    // Check subscriber-only message
+    if (html.includes('مشتركين') || html.includes('اشتراك')) {
+      console.error(`  [flip] ⚠ SUBSCRIBER-ONLY page detected`);
+    }
+
     // PDF base64 starts with JVBER (= %PDF- in base64) and ends at closing "
     const b64Start = html.indexOf('JVBER');
     if (b64Start < 0) {
