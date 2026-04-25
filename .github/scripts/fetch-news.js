@@ -340,7 +340,6 @@ async function fetchKuwaitYoumTenders(auth) {
   for (const cat of KY_CATEGORIES) {
     try {
       // Build DataTable POST body — sort by ID desc (newest first), fetch top 300
-      // Columns 6-13 are extra fields we probe for — server returns null if they don't exist
       const params = new URLSearchParams({
         draw: '1', start: '0', length: '300',
         '__RequestVerificationToken': auth.csrfToken,
@@ -351,15 +350,6 @@ async function fetchKuwaitYoumTenders(auth) {
         'columns[3][data]': 'EditionID_FK','columns[3][name]': '', 'columns[3][searchable]': 'false', 'columns[3][orderable]': 'true',  'columns[3][search][value]': '', 'columns[3][search][regex]': 'false',
         'columns[4][data]': 'FromPage',    'columns[4][name]': '', 'columns[4][searchable]': 'false', 'columns[4][orderable]': 'false', 'columns[4][search][value]': '', 'columns[4][search][regex]': 'false',
         'columns[5][data]': 'ID',          'columns[5][name]': '', 'columns[5][searchable]': 'false', 'columns[5][orderable]': 'true',  'columns[5][search][value]': '', 'columns[5][search][regex]': 'false',
-        // Extra fields — probing for Arabic subject/body text
-        'columns[6][data]': 'AdsText',     'columns[6][name]': '', 'columns[6][searchable]': 'true',  'columns[6][orderable]': 'false', 'columns[6][search][value]': '', 'columns[6][search][regex]': 'false',
-        'columns[7][data]': 'Ministry',    'columns[7][name]': '', 'columns[7][searchable]': 'true',  'columns[7][orderable]': 'false', 'columns[7][search][value]': '', 'columns[7][search][regex]': 'false',
-        'columns[8][data]': 'GovEntity',   'columns[8][name]': '', 'columns[8][searchable]': 'false', 'columns[8][orderable]': 'false', 'columns[8][search][value]': '', 'columns[8][search][regex]': 'false',
-        'columns[9][data]': 'AdsBody',     'columns[9][name]': '', 'columns[9][searchable]': 'false', 'columns[9][orderable]': 'false', 'columns[9][search][value]': '', 'columns[9][search][regex]': 'false',
-        'columns[10][data]': 'Subject',    'columns[10][name]': '', 'columns[10][searchable]': 'false', 'columns[10][orderable]': 'false', 'columns[10][search][value]': '', 'columns[10][search][regex]': 'false',
-        'columns[11][data]': 'AgencyName', 'columns[11][name]': '', 'columns[11][searchable]': 'false', 'columns[11][orderable]': 'false', 'columns[11][search][value]': '', 'columns[11][search][regex]': 'false',
-        'columns[12][data]': 'AdsDesc',    'columns[12][name]': '', 'columns[12][searchable]': 'false', 'columns[12][orderable]': 'false', 'columns[12][search][value]': '', 'columns[12][search][regex]': 'false',
-        'columns[13][data]': 'ToPage',     'columns[13][name]': '', 'columns[13][searchable]': 'false', 'columns[13][orderable]': 'false', 'columns[13][search][value]': '', 'columns[13][search][regex]': 'false',
         'order[0][column]': '5', 'order[0][dir]': 'desc',
       });
 
@@ -377,6 +367,30 @@ async function fetchKuwaitYoumTenders(auth) {
 
       const rows = resp.data?.data || [];
       if (!rows.length) { console.error(`  ! كويت اليوم ${cat.name}: 0 rows`); continue; }
+
+      // Probe AdsDetails endpoint on the first row to find Arabic description source
+      if (rows.length > 0 && cat.id === 1) { // only probe once (category 1 = مناقصات)
+        const probeId = rows[0].ID;
+        const detailUrls = [
+          `${KY_BASE}/AdsDetails/${probeId}`,
+          `${KY_BASE}/Ads/Details/${probeId}`,
+          `${KY_BASE}/AdsInfo/${probeId}`,
+        ];
+        for (const dUrl of detailUrls) {
+          try {
+            const dr = await axios.get(dUrl, {
+              timeout: 10000,
+              headers: { ...HTML_HEADERS, Cookie: auth.cookies },
+              httpsAgent: KY_AGENT,
+              validateStatus: s => s < 500,
+            });
+            const snippet = String(dr.data || '').slice(0, 600).replace(/\s+/g, ' ');
+            console.error(`  [KY detail probe ${dUrl}] status=${dr.status} snippet:`, snippet.slice(0, 300));
+          } catch (pe) {
+            console.error(`  [KY detail probe ${dUrl}] error: ${pe.message.split('\n')[0]}`);
+          }
+        }
+      }
 
       // Collect the last N unique edition numbers from newest-first results
       const seenEditions = [];
@@ -403,25 +417,11 @@ async function fetchKuwaitYoumTenders(auth) {
         const gazetteUrl = `https://kuwaitalyawm.media.gov.kw/flip/index?id=${row.EditionID_FK}&no=${row.FromPage}`;
         const tenderRef = String(row.AdsTitle || '').trim();
 
-        // Extract Arabic subject from any extra fields the server returned
-        const arabicSubject = clean(
-          row.AdsText || row.AdsBody || row.AdsDesc || row.Subject || row.Ministry || row.GovEntity || row.AgencyName || ''
-        );
-        const ministry = clean(row.Ministry || row.GovEntity || row.AgencyName || '');
-
-        // Log first row of each category so we can see what fields came back
-        if (count === 0) {
-          const extraFields = { AdsText: row.AdsText, AdsBody: row.AdsBody, AdsDesc: row.AdsDesc, Subject: row.Subject, Ministry: row.Ministry, GovEntity: row.GovEntity, AgencyName: row.AgencyName, ToPage: row.ToPage };
-          console.error(`  [KY ${cat.name} sample row extra fields]:`, JSON.stringify(extraFields));
-        }
-
-        // Title = Arabic subject if found; otherwise the reference code
-        const titleText = arabicSubject.length > 5 ? arabicSubject : (tenderRef || `${cat.name} — العدد ${row.EditionNo}`);
+        // Title = reference code (AdsTitle is only a ref number; Arabic text not in DataTable API)
+        const titleText = tenderRef || `${cat.name} — العدد ${row.EditionNo}`;
 
         // Description = metadata strip (pipe-separated for TendersSection.jsx parseMetaFromDesc)
-        const descParts = [cat.name, 'الكويت اليوم الرسمية', `العدد ${row.EditionNo}`, pubDate.toLocaleDateString('ar-KW'), `صفحة ${row.FromPage}`];
-        if (ministry) descParts.unshift(ministry);
-        const desc = descParts.join(' | ');
+        const desc = [cat.name, 'الكويت اليوم الرسمية', `العدد ${row.EditionNo}`, pubDate.toLocaleDateString('ar-KW'), `صفحة ${row.FromPage}`].join(' | ');
 
         const art = makeArticle(titleText, desc, gazetteUrl, 'كويت اليوم | رسمي', pubDate.toISOString());
         if (art) {
@@ -430,9 +430,6 @@ async function fetchKuwaitYoumTenders(auth) {
           art.tenderRef = tenderRef;
           art.editionNo = row.EditionNo;
           art.tenderCategory = cat.name;
-          // Keep Arabic subject separate so the frontend can show ref as subtitle
-          if (arabicSubject.length > 5) art.tenderSubject = arabicSubject;
-          if (ministry) art.tenderMinistry = ministry;
           articles.push(art);
           count++;
         }
