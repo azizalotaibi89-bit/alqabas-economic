@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 
 export default function SplashScreen({ onDone }) {
-  const [phase, setPhase] = useState('visible');
+  const [phase, setPhase] = useState('visible'); // 'visible' | 'fading' | 'gone'
 
   useEffect(() => {
+    // Hold for 1.6s then fade out over 0.8s
     const hold = setTimeout(() => setPhase('fading'), 1600);
     const gone = setTimeout(() => {
       setPhase('gone');
@@ -31,6 +32,7 @@ export default function SplashScreen({ onDone }) {
         pointerEvents: phase === 'fading' ? 'none' : 'auto',
       }}
     >
+      {/* Arabic logotype */}
       <span
         style={{
           fontFamily: "'Cairo','Tajawal','Noto Naskh Arabic',serif",
@@ -44,6 +46,8 @@ export default function SplashScreen({ onDone }) {
       >
         القبس
       </span>
+
+      {/* Gold divider */}
       <div
         style={{
           width: 60,
@@ -52,6 +56,8 @@ export default function SplashScreen({ onDone }) {
           opacity: 0.7,
         }}
       />
+
+      {/* economics wordmark */}
       <span
         style={{
           fontFamily: "'Inter','Helvetica Neue',Arial,sans-serif",
