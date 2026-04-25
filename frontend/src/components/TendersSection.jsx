@@ -147,10 +147,10 @@ export default function TendersSection() {
   const switchTab = (key) => { setActiveTab(key); setShowAll(false); };
 
   // Filter: only official KY gazette entries (have tenderCategory), match tab type
+  // Note: KY titles can be English ref codes (RFP/RFQ) — don't filter by language
   const byTab = (tabKey) =>
     tenders.filter((t) => {
       if (!t.tenderCategory) return false; // skip RSS news articles
-      if (!isArabic(t.title)) return false;
       return getTenderType(t) === tabKey;
     });
 
